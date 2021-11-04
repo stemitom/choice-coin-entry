@@ -39,7 +39,7 @@ def generate_algorand_keypair():
     phrase = mnemonic.from_private_key(private_key)
     return address, phrase, private_key
 
-def wait_for_transaction_confirmation(transaction_id: str):
+def waitForTransactionConfirmation(transaction_id: str):
     """Wait until the transaction is confirmed or rejected, or until timeout snumber of rounds have passed."""
 
     TIMEOUT = 4
@@ -61,7 +61,7 @@ def wait_for_transaction_confirmation(transaction_id: str):
     raise Exception("pending tx not found in TIMEOUT rounds, TIMEOUT value = : {}".format(TIMEOUT))
 
 
-def send_initial_algorand(escrow_address: str, escrow_private_key: str, recipient_address: str,) -> None:
+def sendInitialAlgorand(escrow_address: str, escrow_private_key: str, recipient_address: str,) -> None:
     """Send algorand to candidate address."""
 
     AMOUNT = 210000
@@ -77,7 +77,7 @@ def send_initial_algorand(escrow_address: str, escrow_private_key: str, recipien
 
     try:
         transaction_id = algod_client.send_transaction(signed_transaction)
-        wait_for_transaction_confirmation(transaction_id)
+        waitForTransactionConfirmation(transaction_id)
     except Exception as err:
         print(err)
         return True
@@ -85,7 +85,7 @@ def send_initial_algorand(escrow_address: str, escrow_private_key: str, recipien
 
 def choiceCoinOptIn(address, private_key):
     """Opt into Choice Coin."""
-    is_failed = send_initial_algorand(
+    is_failed = sendInitialAlgorand(
                 escrow_address, escrow_key, address
     )
     suggested_params = algod_client.suggested_params()
@@ -95,7 +95,7 @@ def choiceCoinOptIn(address, private_key):
         transaction_id = algod_client.send_transaction(signature)
     except Exception as e:
         print(e)
-    wait_for_transaction_confirmation(transaction_id)
+    waitForTransactionConfirmation(transaction_id)
 
 def sendChoice(candidate_address, amount=1) -> None:
     params = algod_client.suggested_params()

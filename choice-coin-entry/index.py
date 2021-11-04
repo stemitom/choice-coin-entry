@@ -8,6 +8,7 @@ from sqlalchemy import func
 from vote import algod_client, choice_id, countVotes, electionVoting, hashing
 from functools import wraps
 from .models import Admin, Project, Voter, Vote
+from .utils import choiceCoinOptIn, generateAlgorandKeypair
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///voters.db"
@@ -80,8 +81,20 @@ def adminLogOut():
 def createProject():
 	if request.method == 'POST':
 		title = request.form.get("title")
-		creatorEmail = session.get("email", "")
-		admin = Admin.query.filter_by(email=creatorEmail).first()
+		try:
+			address, phrase, privateKey = generateAlgorandKeypair()
+			choiceCoinOptIn(address, privateKey)
+			project = Project(
+				title=title,
+				phrase=phrase
+			)
+			db.session.add(project)
+			db.session.commit()
+			flash("Project Created", "success")
+			return redirect(url_for("createProject"))
+		except Exception as e:
+			flash(e, "danger")
+			return redirect(url_for("createProject"))
 		project = Project.query.filter_by(title=title)
 		db.session.add(project)
 		db.session.commit(project)
@@ -94,7 +107,10 @@ def createExecutives():
 	if request.method == 'POST':
 		ssn = request.form.get("ssn")
 		license_id = request.form.get("license_id")
-		if Voter.
+		if Voter.query.filter_by(ssn=ssn).first():
+			flash("Unable to login, please try again!", "error")
+			return render_template("createExecutives.html")
+		newAccount = 
 
 @app.route('/corporate/vote', methods = ['POST','GET'])
 def corporatevote():
