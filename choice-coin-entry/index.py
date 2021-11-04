@@ -1,20 +1,12 @@
-from enum import unique
+from enum import unique, IntEnum, Enum
 from algosdk import account, mnemonic
 from algosdk.future.transaction import AssetTransferTxn, PaymentTxn
-from flask import (
-    Flask,
-    flash,
-    url_for,
-    redirect,
-    render_template,
-    request,
-    session
-)
+from flask import Flask, flash, url_for, redirect, render_template, request, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import backref
 from sqlalchemy import func
 from vote import algod_client, choice_id, countVotes, electionVoting, hashing
-
+from functools import wraps
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///voters.db"
@@ -24,44 +16,73 @@ db = SQLAlchemy(app)
 
 class Admin(db.Model):
     __tablename__ = "admin"
-
+ 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), nullable=False)
-    hashed_key = db.Column(db.String(150), nullable=False)
+    password = db.Column(db.String(150), nullable=False)
     created_at = db.Column(db.DateTime, default=func.current_timestamp())
-
-    def __init__(self, username, key) -> None:
+ 
+    def __init__(self, username, pw) -> None:
         self.username = username
-        self.hashed_key = hashing(key)
-
-
+        self.password = hashing(pw)
+ 
+ 
 class Project(db.Model):
     __tablename__ = "project"
-
+ 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(20), nullable=True)
-    category = db.Column(db.Text, nullable=False)
-    target = db.Column(db.Integer, nullable=False)
+    title = db.Column(db.String(20), nullable=True)
+    # category = db.Column(db.Text, nullable=False)
+    # target = db.Column(db.Integer, nullable=False)
     votes = db.relationship("Vote", backref="voter", lazy="dynamic")
-
-
+    participants = db.relationship("Participant", backref="project", lazy="dynamic")
+ 
+ 
+class Participant(db.Model):
+    __tablename__ = "participant"
+ 
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("project.id"), nullable=False)
+    name = db.Column(db.String(120), nullable=True)
+    address = db.Column(db.String(100), nullable=False, unique=True)
+    private_key = db.Column(db.String(100), nullable=False, unique=True)
+ 
+ 
 class Vote(db.Model):
     __tablename__ = "vote"
-
+ 
     id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, db.ForeignKey('project.id'))
-    address = db.Column(db.String(100), db.ForeignKey('voter.id'))
-
+    project_id = db.Column(db.Integer, db.ForeignKey("project.id"))
+    voter_id = db.Column(db.Integer, db.ForeignKey("voter.id"))
+ 
+@unique
+class VoterCategory(Enum):
+    NEWBIE = 1
+    MASTER = 5
+    EMERITUS = 10
 
 class Voter(db.Model):
     __tablename__ = "voter"
-
+ 
     id = db.Column(db.Integer, primary_key=True)
     ssn = db.Column(db.String(30), nullable=False)
     license_id = db.Column(db.String(20), nullable=False)
+    category = db.Column(db.Enum(VoterCategory))
     address = db.Column(db.String(1000), nullable=False, unique=True)
     phrase = db.Column(db.String(512), unique=True)
+ 
     votes = db.relationship("Vote", backref="leggo", lazy="dynamic")
+
+def is_admin(function):
+	@wraps(function)
+	def wrap(*args, **kwargs):
+		admin_email = session.get("admin", "")
+		admin = Admin.query.filter_by(email=admin_email).first()
+		if admin:
+			return function(*args, **kwargs)
+		flash("You need to be logged in as admin for this action", "danger")
+		return redirect(url_for("admin_login"))
+	return wrap
 
 
 finished = False
@@ -81,8 +102,8 @@ def about():
 	return render_template('about.html')
 
 
-@app.route('/corporate', methods = ['POST','GET'])
-def corporate():
+@app.route('/corporate/vote', methods = ['POST','GET'])
+def corporatevote():
 	error = ''
 	message = ''
 	if request.method == 'POST':
@@ -109,22 +130,30 @@ def corporate():
 	elif corporate_finished == True:
 		message = count_corporate_votes()
 		return render_template('end.html' ,message = message, error = error)
-	return render_template('corporate.html', message = message, error = error)
+	return render_template('corporatevote.html', message = message, error = error)
 
-@app.route('/corporate_creation',methods = ['POST','GET'])
+# @app.route('/corporate/voter/create',methods = ['POST','GET'])
+# def corporate_create():
+# 	if request.method == 'POST':
+# 		Name = request.form.get('Name')
+# 		Key = hashing(str(request.form.get('Secret')))
+# 		Percentage = request.form.get('Stake')
+# 		Main = hashing(str(request.form.get('Main')))
+# 		if Main == "":
+# 			cur.execute("INSERT INTO corporate (name, Secret, Stake) VALUES(%s,%s,%s)",((Name,Key,Percentage)))
+# 			conn.commit()
+# 	return render_template('corporatecreate.html')
+
+@app.route('/corporate/voter/create',methods = ['POST','GET'])
 def corporate_create():
 	if request.method == 'POST':
-		Name = request.form.get('Name')
-		Key = hashing(str(request.form.get('Secret')))
-		Percentage = request.form.get('Stake')
-		Main = hashing(str(request.form.get('Main')))
-		if Main == "":
-			cur.execute("INSERT INTO corporate (name, Secret, Stake) VALUES(%s,%s,%s)",((Name,Key,Percentage)))
-			conn.commit()
-	return render_template('corporatecreate.html')
+		name = request.form.get('name')
+		secret = hashing(request.form.get(''))
+		rank = request.values.get()
 
 
-@app.route('/corporatestart', methods = ['POST', 'GET'])
+
+@app.route('/corporate-start', methods = ['POST', 'GET'])
 def start_corporate():
 	error = ''
 	message = ''
@@ -139,7 +168,7 @@ def start_corporate():
 	return render_template("start.html", message = message, error = error)
 
 
-@app.route('/corporateend', methods = ['POST', 'GET'])
+@app.route('/corporate-end', methods = ['POST', 'GET'])
 def corporate_end():
 	error = ''
 	message = ''
