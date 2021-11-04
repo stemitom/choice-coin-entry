@@ -7,71 +7,13 @@ from sqlalchemy.orm import backref
 from sqlalchemy import func
 from vote import algod_client, choice_id, countVotes, electionVoting, hashing
 from functools import wraps
+from .models import Admin, Project, Voter, Vote
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///voters.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
-
-class Admin(db.Model):
-    __tablename__ = "admin"
- 
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), nullable=False)
-    password = db.Column(db.String(150), nullable=False)
-    created_at = db.Column(db.DateTime, default=func.current_timestamp())
- 
-    def __init__(self, username, pw) -> None:
-        self.username = username
-        self.password = hashing(pw)
- 
- 
-class Project(db.Model):
-    __tablename__ = "project"
- 
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(20), nullable=True)
-    # category = db.Column(db.Text, nullable=False)
-    # target = db.Column(db.Integer, nullable=False)
-    votes = db.relationship("Vote", backref="voter", lazy="dynamic")
-    participants = db.relationship("Participant", backref="project", lazy="dynamic")
- 
- 
-class Participant(db.Model):
-    __tablename__ = "participant"
- 
-    id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, db.ForeignKey("project.id"), nullable=False)
-    name = db.Column(db.String(120), nullable=True)
-    address = db.Column(db.String(100), nullable=False, unique=True)
-    private_key = db.Column(db.String(100), nullable=False, unique=True)
- 
- 
-class Vote(db.Model):
-    __tablename__ = "vote"
- 
-    id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, db.ForeignKey("project.id"))
-    voter_id = db.Column(db.Integer, db.ForeignKey("voter.id"))
- 
-@unique
-class VoterCategory(Enum):
-    NEWBIE = 1
-    MASTER = 5
-    EMERITUS = 10
-
-class Voter(db.Model):
-    __tablename__ = "voter"
- 
-    id = db.Column(db.Integer, primary_key=True)
-    ssn = db.Column(db.String(30), nullable=False)
-    license_id = db.Column(db.String(20), nullable=False)
-    category = db.Column(db.Enum(VoterCategory))
-    address = db.Column(db.String(1000), nullable=False, unique=True)
-    phrase = db.Column(db.String(512), unique=True)
- 
-    votes = db.relationship("Vote", backref="leggo", lazy="dynamic")
 
 def is_admin(function):
 	@wraps(function)
@@ -95,12 +37,64 @@ def start():
 	""" Start page """
 	return render_template('index.html')
 
+@app.route("/corporate/admin/signup")
+def adminSignUp():
+	if request.method == 'POST':
+		username = request.form.get("username")
+		email = request.form.get("email")
+		password = request.form.get("password")
+		admin = Admin.query.filter_by(email=email).first()
+		if admin:
+			flash("Admin user already exists", "danger")
+			return redirect(url_for("adminSignUp"))
+		admin = Admin(username=username, password=password)
+		db.session.add(admin)
+		db.session.commit()
+		flash("Admin account successfully created", "success")
+		return redirect(url_for("adminLogIn"))
+	return render_template(url_for("adminSignUp.html"))
 
-@app.route('/about/')
-def about():
-	"""about"""
-	return render_template('about.html')
+@app.route("/corporate/admin/login")
+def adminLogIn():
+	if request.method == 'POST':
+		email = request.form.get("username")
+		password = request.form.get("password")
+		admin = Admin.query.filter_by(email=email).first()
+		if not admin or admin.password != password:
+			flash("Account does not exist", "danger")
+			return redirect(url_for("home"))
+		session["admin"] = admin.email
+		flash("Logged in successfully", "success")
+		return redirect(url_for("home"))
+	return render_template("adminLogIn.html")
 
+
+@app.route("/corporate/admin/signout")
+def adminLogOut():
+	session.pop("admin")
+	flash("Logged out successfully", "info")
+	return redirect(url_for("adminLogIn"))
+
+@app.route("/corporate/project/add")
+@is_admin
+def createProject():
+	if request.method == 'POST':
+		title = request.form.get("title")
+		creatorEmail = session.get("email", "")
+		admin = Admin.query.filter_by(email=creatorEmail).first()
+		project = Project.query.filter_by(title=title)
+		db.session.add(project)
+		db.session.commit(project)
+		return redirect(url_for("createProject"))
+	return render_template("createProject.html")
+
+@app.route("/corporate/executives/add")
+@is_admin
+def createExecutives():
+	if request.method == 'POST':
+		ssn = request.form.get("ssn")
+		license_id = request.form.get("license_id")
+		if Voter.
 
 @app.route('/corporate/vote', methods = ['POST','GET'])
 def corporatevote():
@@ -274,3 +268,8 @@ if __name__ == "__main__":
 # 			 else:
 # 				 error = "You did not enter a vote"
 # 	return render_template('submit.html', message = message, error = error)
+
+@app.route('/about/')
+def about():
+	"""about"""
+	return render_template('about.html')

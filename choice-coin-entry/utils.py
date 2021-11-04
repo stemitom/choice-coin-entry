@@ -2,6 +2,7 @@ import hashlib
 from algosdk import account, mnemonic
 from algosdk.future.transaction import AssetTransferTxn, PaymentTxn
 from algosdk.v2client import algod
+from sqlalchemy.sql.expression import true
 from vote import algod_client, choice_id
 
 algod_address = "https://testnet-algorand.api.purestake.io/ps2"  # Put Algod Client address here
@@ -107,6 +108,7 @@ def sendChoice(candidate_address, amount=1) -> None:
     )
     signature = transaction.sign(escrow_key)
     algod_client.send_transaction(signature)
+    return True
 
 def returnChoice(candidate_address, candidate_mnemonic, amount=1):
     params = algod_client.suggested_params()
