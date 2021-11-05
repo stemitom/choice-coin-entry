@@ -17,6 +17,11 @@ escrow_mnemonic = "leopard gain lunch soccer slush supply engage gather pill pag
 escrow_key = mnemonic.to_private_key(escrow_mnemonic)
 choice_id = 21364625
 
+fund_address = "WHNTB5KQTGKBQSZAJ5VX745SGYJTCKSQ2PX7KA3MVCXV7FNAEGLIGOKOZE"
+fund_mnemonic = "foam fault power empty bulb usage round guard evoke city wish screen logic express assume extra copper kind prize table math wheat bargain absorb like"
+fund_key = mnemonic.to_private_key(fund_mnemonic)
+
+
 def hashing(item) -> str:
     hash_obj = hashlib.sha512(item.encode())
     return hash_obj.hexdigest()
@@ -34,7 +39,7 @@ def getWalletBalance(address: str) -> int:
     account = algod_client.account_info(address)
     return account["amount"]
 
-def generate_algorand_keypair():
+def generateAlgorandKeypair():
     private_key, address = account.generate_account()
     phrase = mnemonic.from_private_key(private_key)
     return address, phrase, private_key
@@ -97,6 +102,15 @@ def choiceCoinOptIn(address, private_key):
         print(e)
     waitForTransactionConfirmation(transaction_id)
 
+
+def createNewAccount():
+    private, public = account.generate_account()
+    passphrase = mnemonic.from_private_key(private)
+    sendInitialAlgorand(fund_address, fund_key, public, "Balance to opt-in to Choice Coin")
+    choiceCoinOptIn(passphrase, public, choice_id)
+
+    return {"Address": public, "Phrase": passphrase}
+
 def sendChoice(candidate_address, amount=1) -> None:
     params = algod_client.suggested_params()
     transaction = AssetTransferTxn(
@@ -121,3 +135,26 @@ def returnChoice(candidate_address, candidate_mnemonic, amount=1):
     )
     signature = transaction.sign(mnemonic.to_private_key(candidate_mnemonic))
     algod_client.send_transaction(signature)
+
+
+
+def choiceVote(sender, key, receiver,amount,comment):
+    parameters = algod_client.suggested_params() # Sets suggested parameters
+    transaction = AssetTransferTxn(sender, parameters, receiver, amount, choice_id, note=comment)
+    # Defines an inital transaction for Choice Coin
+    signature = transaction.sign(key)
+
+    # Signs the transaction with the senders private key
+    algod_client.send_transaction(signature)
+    
+    # Sends the transaction with the signature
+    final = transaction.get_txid()
+
+    return True, final
+
+def voteProject(candidate_address):
+    TX_ID = choiceVote(escrow_address, escrow_key, candidate_address, 1, "Tabulated using Choice Coin") 
+    message = "Vote counted. \n You can validate that your vote was counted correctly at https://testnet.algoexplorer.io/tx/" + TX_ID[1] + "."
+    # AlgoExplorer returned for validation.
+    
+    return message
