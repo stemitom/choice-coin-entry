@@ -116,7 +116,7 @@ def createExecutives():
 		if Voter.query.filter_by(ssn=ssn).first():
 			flash("Voter is already registered", "danger")
 			return render_template("createExecutives.html")
-		print("works")
+		print("Voter section successful")
 		# accountResponse = createNewAccount()
 		# address = accountResponse["address"]
 		# phrase = accountResponse["phrase"]
