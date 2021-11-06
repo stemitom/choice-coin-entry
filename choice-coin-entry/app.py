@@ -1,15 +1,16 @@
 from flask import Flask, flash, url_for, redirect, render_template, request, session
 from flask_sqlalchemy import SQLAlchemy
 from vote import hashing
+from database import db
 from functools import wraps
-from models import Admin, Project, Voter
 from utils import choiceCoinOptIn, createNewAccount, generateAlgorandKeypair, choiceVote
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///voters.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-db = SQLAlchemy(app)
+db.init_app(app)
 
+from models import Admin, Project, Voter
 
 def is_admin(function):
 	@wraps(function)
@@ -27,30 +28,35 @@ finished = False
 corporate_finished = False
 validated = False
 
+@app.before_first_request
+def create_db():
+	db.create_all()
 
-@app.route("/")
-def start():
+
+@app.route("/", methods=["GET"])
+def home():
 	""" Start page """
 	return render_template('index.html')
 
-@app.route("/corporate/admin/signup")
+@app.route("/corporate/admin/signup", methods=["GET", "POST"])
 def adminSignUp():
 	if request.method == 'POST':
 		username = request.form.get("username")
 		email = request.form.get("email")
 		password = request.form.get("password")
 		admin = Admin.query.filter_by(email=email).first()
+		print("breakpoint")
 		if admin:
 			flash("Admin user already exists", "danger")
 			return redirect(url_for("adminSignUp"))
 		admin = Admin(username=username, password=password)
 		db.session.add(admin)
 		db.session.commit()
-		flash("Admin account successfully created", "success")
+		flash("Admin account successfully created. You can login", "success")
 		return redirect(url_for("adminLogIn"))
-	return render_template(url_for("adminSignUp.html"))
+	return render_template("adminSignUp.html")
 
-@app.route("/corporate/admin/login")
+@app.route("/corporate/admin/login", methods=["GET", "POST"])
 def adminLogIn():
 	if request.method == 'POST':
 		email = request.form.get("username")
@@ -65,13 +71,13 @@ def adminLogIn():
 	return render_template("adminLogIn.html")
 
 
-@app.route("/corporate/admin/signout")
+@app.route("/corporate/admin/signout", methods=["POST"])
 def adminLogOut():
 	session.pop("admin")
 	flash("Logged out successfully", "info")
 	return redirect(url_for("adminLogIn"))
 
-@app.route("/corporate/project/add")
+@app.route("/corporate/project/add", methods=["GET", "POST"])
 @is_admin
 def createProject():
 	if request.method == 'POST':
@@ -93,7 +99,7 @@ def createProject():
 			return redirect(url_for("createProject"))
 	return render_template("createProject.html")
 
-@app.route("/corporate/executives/add")
+@app.route("/corporate/executives/add", methods=["GET", "POST"])
 @is_admin
 def createExecutives():
 	if request.method == 'POST':
@@ -121,7 +127,7 @@ def createExecutives():
 		return redirect(url_for("createExecutives"))
 	return render_template("createExecutives.html")
 
-@app.route("/corporate/vote")
+@app.route("/corporate/vote", methods=["GET", "POST"])
 def vote():
 	levelMap = {
 		'CEO': 10,
@@ -151,7 +157,7 @@ def vote():
 		flash(message, "success")
 		return redirect(url_for('vote'))
 
-@app.route('/about/')
+@app.route('/about/', methods=["GET"])
 def about():
 	"""about"""
 	return render_template('about.html')

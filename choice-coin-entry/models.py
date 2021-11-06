@@ -1,4 +1,4 @@
-from index import db
+from database import db
 from vote import hashing
 from enum import unique, Enum
 from sqlalchemy import func
@@ -68,5 +68,3 @@ class Participant(db.Model):
     name = db.Column(db.String(120), nullable=True)
     address = db.Column(db.String(100), nullable=False, unique=True)
     private_key = db.Column(db.String(100), nullable=False, unique=True)
- 
- 
