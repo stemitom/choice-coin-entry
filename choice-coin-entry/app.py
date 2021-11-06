@@ -77,8 +77,9 @@ def adminLogOut():
 	flash("Logged out successfully", "info")
 	return redirect(url_for("adminLogIn"))
 
-@app.route("/corporate/project/add", methods=["GET", "POST"])
 @is_admin
+
+@app.route("/corporate/project/add", methods=["GET", "POST"])
 def createProject():
 	if request.method == 'POST':
 		title = request.form.get("title")
