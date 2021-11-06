@@ -12,9 +12,10 @@ class Admin(db.Model):
     password = db.Column(db.String(150), nullable=False)
     created_at = db.Column(db.DateTime, default=func.current_timestamp())
  
-    def __init__(self, username, pw) -> None:
+    def __init__(self, username, email, password) -> None:
         self.username = username
-        self.password = hashing(pw)
+        self.email = email
+        self.password = hashing(password)
  
  
 class Project(db.Model):

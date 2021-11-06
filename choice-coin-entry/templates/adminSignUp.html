@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Register - Free Bulma template</title>
+    <title>Admin - Sign Up</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;700&display=swap"
       rel="stylesheet"
@@ -43,11 +43,11 @@
                 {{ message|capitalize }}
               </div>
               {% endfor %} {% endif %} {% endwith %}
-              <h1 class="title is-4">Sign up today</h1>
+              <h1 class="title is-4">Admin - Sign Up</h1>
               <p class="description">
                 Lorem ipsum dolor, sit amet consectetur adipisicing elit
               </p>
-              <form action="{{ uumethodsumethodsmethods=["GET", "POST"]rl_for('adminSignUp') }}" method="post">
+              <form action="{{ url_for('adminSignUp') }}" method="post">
                 <div class="field">
                   <div class="control">
                     <input
@@ -127,6 +127,19 @@
       </div>
     </section>
   </body>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      (document.querySelectorAll(".notification .delete") || []).forEach(
+        ($delete) => {
+          const $notification = $delete.parentNode;
+
+          $delete.addEventListener("click", () => {
+            $notification.parentNode.removeChild($notification);
+          });
+        }
+      );
+    });
+  </script>
   <style>
     :root {
       --brandColor: hsl(166, 67%, 51%);

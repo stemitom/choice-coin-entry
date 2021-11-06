@@ -8,6 +8,7 @@ from utils import choiceCoinOptIn, createNewAccount, generateAlgorandKeypair, ch
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///voters.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config['SECRET_KEY'] = "soft-life"
 db.init_app(app)
 
 from models import Admin, Project, Voter
@@ -45,11 +46,10 @@ def adminSignUp():
 		email = request.form.get("email")
 		password = request.form.get("password")
 		admin = Admin.query.filter_by(email=email).first()
-		print("breakpoint")
 		if admin:
 			flash("Admin user already exists", "danger")
 			return redirect(url_for("adminSignUp"))
-		admin = Admin(username=username, password=password)
+		admin = Admin(username=username, email=email, password=password)
 		db.session.add(admin)
 		db.session.commit()
 		flash("Admin account successfully created. You can login", "success")
@@ -59,15 +59,15 @@ def adminSignUp():
 @app.route("/corporate/admin/login", methods=["GET", "POST"])
 def adminLogIn():
 	if request.method == 'POST':
-		email = request.form.get("username")
+		username = request.form.get("username")
 		password = request.form.get("password")
-		admin = Admin.query.filter_by(email=email).first()
-		if not admin or admin.password != password:
+		admin = Admin.query.filter_by(username=username, password=hashing(password)).first()
+		if not admin or admin.password != hashing(password):
 			flash("Account does not exist", "danger")
-			return redirect(url_for("home"))
+			return redirect(url_for("adminLogIn"))
 		session["admin"] = admin.email
 		flash("Logged in successfully", "success")
-		return redirect(url_for("home"))
+		return redirect(url_for("adminLogIn"))
 	return render_template("adminLogIn.html")
 
 
