@@ -1,5 +1,6 @@
 import hashlib
 from algosdk import account, mnemonic
+from algosdk.future import transaction
 from algosdk.future.transaction import AssetTransferTxn, PaymentTxn
 from algosdk.v2client import algod
 from sqlalchemy.sql.expression import true
@@ -39,11 +40,6 @@ def getWalletBalance(address: str) -> int:
     account = algod_client.account_info(address)
     return account["amount"]
 
-def generateAlgorandKeypair():
-    private_key, address = account.generate_account()
-    phrase = mnemonic.from_private_key(private_key)
-    return address, phrase, private_key
-
 def waitForTransactionConfirmation(transaction_id: str):
     """Wait until the transaction is confirmed or rejected, or until timeout snumber of rounds have passed."""
 
@@ -69,18 +65,18 @@ def waitForTransactionConfirmation(transaction_id: str):
 def sendInitialAlgorand(escrow_address: str, escrow_private_key: str, recipient_address: str,) -> None:
     """Send algorand to candidate address."""
 
-    AMOUNT = 210000
-    suggested_params = algod_client.suggested_params()
-    unsigned_transaction = PaymentTxn(
+    AMOUNT = 100
+    params = algod_client.suggested_params()
+    transaction = PaymentTxn(
         escrow_address,
-        suggested_params,
+        params,
         recipient_address,
         AMOUNT,
         note="Initial Funding for Candidate Creation",
     )
-    signed_transaction = unsigned_transaction.sign(escrow_private_key)
+    transaction = transaction.sign(escrow_private_key)
 
-    algod_client.send_transaction(signed_transaction)
+    algod_client.send_transaction(transaction)
     return True
     # try:
     #     transaction_id = algod_client.send_transaction(signed_transaction)
@@ -90,37 +86,57 @@ def sendInitialAlgorand(escrow_address: str, escrow_private_key: str, recipient_
     #     return True
     # return False
 
-def choiceCoinOptIn(address, private_key):
-    """Opt into Choice Coin."""
-    is_failed = sendInitialAlgorand(
-                escrow_address, escrow_key, address
-    )
-    suggested_params = algod_client.suggested_params()
+def choiceCoinOptIn(phrase, address, index):
+    params = algod_client.suggested_params()
     transaction = AssetTransferTxn(
-        address, 
-        suggested_params, 
-        address, 
-        0, 
-        choice_id
+        address,
+        params,
+        address,
+        0,
+        index
     )
-    signature = transaction.sign(private_key)
-    
+    key = mnemonic.to_private_key(phrase)
+    signature = transaction.sign(key)
     algod_client.send_transaction(signature)
     return True
-    # try:
-    #     transaction_id = algod_client.send_transaction(signature)
-    # except Exception as e:
-    #     print(e)
-    # waitForTransactionConfirmation(transaction_id)
+
+# def choiceCoinOptIn(address, private_key):
+#     """Opt into Choice Coin."""
+#     # is_failed = sendInitialAlgorand(
+#     #             escrow_address, escrow_key, address
+#     # )
+#     suggested_params = algod_client.suggested_params()
+#     transaction = AssetTransferTxn(
+#         address, 
+#         suggested_params, 
+#         address, 
+#         0, 
+#         choice_id
+#     )
+#     signature = transaction.sign(private_key)
+    
+#     algod_client.send_transaction(signature)
+#     return True
+#     # try:
+#     #     transaction_id = algod_client.send_transaction(signature)
+#     # except Exception as e:
+#     #     print(e)
+#     # waitForTransactionConfirmation(transaction_id)
 
 
-def createNewAccount():
+# def generateAlgorandKeypair():
+#     private_key, address = account.generate_account()
+#     phrase = mnemonic.from_private_key(private_key)
+#     return address, phrase, private_key
+
+
+def createNewAccount(fund=False):
     private, public = account.generate_account()
     passphrase = mnemonic.from_private_key(private)
-    sendInitialAlgorand(fund_address, fund_key, public)
-    choiceCoinOptIn(passphrase, public)
-
-    return {"Address": public, "Phrase": passphrase}
+    if fund:
+        sendInitialAlgorand(fund_address, fund_key, public)
+    choiceCoinOptIn(passphrase, public, choice_id)
+    return public, passphrase, private
 
 def sendChoice(candidate_address, amount=1) -> None:
     params = algod_client.suggested_params()

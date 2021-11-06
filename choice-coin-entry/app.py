@@ -1,9 +1,8 @@
 from flask import Flask, flash, url_for, redirect, render_template, request, session
-from flask_sqlalchemy import SQLAlchemy
 from vote import hashing
 from database import db
 from functools import wraps
-from utils import choiceCoinOptIn, createNewAccount, generateAlgorandKeypair, choiceVote
+from utils import createNewAccount, choiceVote
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///voters.db"
@@ -84,8 +83,10 @@ def createProject():
 	if request.method == 'POST':
 		title = request.form.get("title")
 		try:
-			address, phrase, privateKey = generateAlgorandKeypair()
-			choiceCoinOptIn(address, privateKey)
+			# address, phrase, privateKey = generateAlgorandKeypair()
+			# choiceCoinOptIn(address, privateKey)
+			# choiceCoinOptIn(phrase, address, choice_id)
+			address, phrase, _ = createNewAccount()
 			project = Project(
 				title=title,
 				address=address,
@@ -116,10 +117,11 @@ def createExecutives():
 			flash("Voter is already registered", "danger")
 			return render_template("createExecutives.html")
 		print("works")
-		accountResponse = createNewAccount()
-		address = accountResponse["address"]
-		phrase = accountResponse["phrase"]
-		print(accountResponse)
+		# accountResponse = createNewAccount()
+		# address = accountResponse["address"]
+		# phrase = accountResponse["phrase"]
+		address, phrase, _ = createNewAccount(fund=True)
+		# print(accountResponse)
 		voter = Voter(
 			ssn = ssn,
 			license_id=license_id,
