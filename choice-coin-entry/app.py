@@ -77,9 +77,9 @@ def adminLogOut():
 	flash("Logged out successfully", "info")
 	return redirect(url_for("adminLogIn"))
 
-@is_admin
 
 @app.route("/corporate/project/add", methods=["GET", "POST"])
+@is_admin
 def createProject():
 	if request.method == 'POST':
 		title = request.form.get("title")
@@ -91,6 +91,7 @@ def createProject():
 				address=address,
 				phrase=phrase
 			)
+			print("works")
 			db.session.add(project)
 			db.session.commit()
 			flash("Project Created", "success")
@@ -106,13 +107,19 @@ def createExecutives():
 	if request.method == 'POST':
 		ssn = request.form.get("ssn")
 		license_id = request.form.get("license_id")
-		category = request.form.get("category")
-		if Voter.query.filter_by(ssn=ssn).first():
-			flash("Unable to login, please try again!", "error")
+		category = request.form.get("position")
+		if not category in ['CEO', 'CTO', 'Employee']:
+			flash("Position selected is not valid")
 			return render_template("createExecutives.html")
+		print(category)
+		if Voter.query.filter_by(ssn=ssn).first():
+			flash("Voter is already registered", "danger")
+			return render_template("createExecutives.html")
+		print("works")
 		accountResponse = createNewAccount()
 		address = accountResponse["address"]
 		phrase = accountResponse["phrase"]
+		print(accountResponse)
 		voter = Voter(
 			ssn = ssn,
 			license_id=license_id,

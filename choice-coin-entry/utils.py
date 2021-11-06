@@ -80,13 +80,15 @@ def sendInitialAlgorand(escrow_address: str, escrow_private_key: str, recipient_
     )
     signed_transaction = unsigned_transaction.sign(escrow_private_key)
 
-    try:
-        transaction_id = algod_client.send_transaction(signed_transaction)
-        waitForTransactionConfirmation(transaction_id)
-    except Exception as err:
-        print(err)
-        return True
-    return False
+    algod_client.send_transaction(signed_transaction)
+    return True
+    # try:
+    #     transaction_id = algod_client.send_transaction(signed_transaction)
+    #     waitForTransactionConfirmation(transaction_id)
+    # except Exception as err:
+    #     print(err)
+    #     return True
+    # return False
 
 def choiceCoinOptIn(address, private_key):
     """Opt into Choice Coin."""
@@ -94,20 +96,29 @@ def choiceCoinOptIn(address, private_key):
                 escrow_address, escrow_key, address
     )
     suggested_params = algod_client.suggested_params()
-    transaction = AssetTransferTxn(address, suggested_params, address, 0, choice_id)
+    transaction = AssetTransferTxn(
+        address, 
+        suggested_params, 
+        address, 
+        0, 
+        choice_id
+    )
     signature = transaction.sign(private_key)
-    try:
-        transaction_id = algod_client.send_transaction(signature)
-    except Exception as e:
-        print(e)
-    waitForTransactionConfirmation(transaction_id)
+    
+    algod_client.send_transaction(signature)
+    return True
+    # try:
+    #     transaction_id = algod_client.send_transaction(signature)
+    # except Exception as e:
+    #     print(e)
+    # waitForTransactionConfirmation(transaction_id)
 
 
 def createNewAccount():
     private, public = account.generate_account()
     passphrase = mnemonic.from_private_key(private)
-    sendInitialAlgorand(fund_address, fund_key, public, "Balance to opt-in to Choice Coin")
-    choiceCoinOptIn(passphrase, public, choice_id)
+    sendInitialAlgorand(fund_address, fund_key, public)
+    choiceCoinOptIn(passphrase, public)
 
     return {"Address": public, "Phrase": passphrase}
 

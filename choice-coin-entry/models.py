@@ -26,7 +26,7 @@ class Project(db.Model):
     # category = db.Column(db.Text, nullable=False)
     # target = db.Column(db.Integer, nullable=False)
     address = db.Column(db.String(1000), nullable=False, unique=True)
-    phrase = db.Column(db.String(512), unique=True)
+    phrase = db.Column(db.String(512), nullable=False, unique=True)
     number_of_votes = db.Column(db.Integer, default=0)
     votes = db.relationship("Vote", backref="voter", lazy="dynamic")
     participants = db.relationship("Participant", backref="project", lazy="dynamic")
