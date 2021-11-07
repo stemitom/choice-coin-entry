@@ -82,11 +82,13 @@ def adminLogOut():
 def createProject():
 	if request.method == 'POST':
 		title = request.form.get("title")
+		print(title)
 		try:
 			# address, phrase, privateKey = generateAlgorandKeypair()
 			# choiceCoinOptIn(address, privateKey)
 			# choiceCoinOptIn(phrase, address, choice_id)
 			address, phrase, _ = createNewAccount()
+			print("Account creation successful")
 			project = Project(
 				title=title,
 				address=address,

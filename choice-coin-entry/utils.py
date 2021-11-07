@@ -76,27 +76,29 @@ def sendInitialAlgorand(escrow_address: str, escrow_private_key: str, recipient_
     algod_client.send_transaction(transaction)
     return True
   
-def choiceCoinOptIn(phrase, address, index):
+def choiceCoinOptIn(address, privateKey) -> None:
+    is_failed = sendInitialAlgorand(
+                escrow_address, escrow_key, address
+    )
     params = algod_client.suggested_params()
     transaction = AssetTransferTxn(
         address,
         params,
         address,
         0,
-        index
+        choice_id
     )
-    key = mnemonic.to_private_key(phrase)
-    signature = transaction.sign(key)
+    # key = mnemonic.to_private_key(privateKey)
+    signature = transaction.sign(privateKey)
     algod_client.send_transaction(signature)
     return True
 
-def createNewAccount(fund=False):
-    private, public = account.generate_account()
-    passphrase = mnemonic.from_private_key(private)
-    if fund:
-        sendInitialAlgorand(fund_address, fund_key, public)
-    choiceCoinOptIn(passphrase, public, choice_id)
-    return public, passphrase, private
+def createNewAccount(fund=False) -> None:
+    privateKey, address = account.generate_account()
+    passphrase = mnemonic.from_private_key(privateKey)
+    if fund: sendInitialAlgorand(fund_address, fund_key, address)
+    choiceCoinOptIn(address, privateKey)
+    return address, passphrase, privateKey
 
 def sendChoice(candidate_address, amount=1) -> None:
     params = algod_client.suggested_params()
