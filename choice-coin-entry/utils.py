@@ -10,14 +10,15 @@ headers = {
 }
 algod_client = algod.AlgodClient(algod_token, algod_address, headers)
 
-escrow_address = "3JTSHP4IT2JAHDN3PXY64E2DU6GCVPTLPXHLOK5JDSFGKH3WIV2GCFU6QY"
-escrow_mnemonic = "leopard gain lunch soccer slush supply engage gather pill page fence update scissors later brave image depart media indicate senior ready stand again absent worry"
-escrow_key = mnemonic.to_private_key(escrow_mnemonic)
+escrowAddr = "3JTSHP4IT2JAHDN3PXY64E2DU6GCVPTLPXHLOK5JDSFGKH3WIV2GCFU6QY"
+escrowPhrase = "leopard gain lunch soccer slush supply engage gather pill page fence update scissors later brave image depart media indicate senior ready stand again absent worry"
+escrowKey = mnemonic.to_private_key(escrowPhrase)
 choice_id = 21364625
 
-fund_address = "WHNTB5KQTGKBQSZAJ5VX745SGYJTCKSQ2PX7KA3MVCXV7FNAEGLIGOKOZE"
-fund_mnemonic = "foam fault power empty bulb usage round guard evoke city wish screen logic express assume extra copper kind prize table math wheat bargain absorb like"
-fund_key = mnemonic.to_private_key(fund_mnemonic)
+fundAddr = "WHNTB5KQTGKBQSZAJ5VX745SGYJTCKSQ2PX7KA3MVCXV7FNAEGLIGOKOZE"
+fundPhrase = "foam fault power empty bulb usage round guard evoke city wish screen logic express assume extra copper kind prize table math wheat bargain absorb like"
+fundKey = mnemonic.to_private_key(fundPhrase)
+# choice_id = 1726141
 
 
 def hashing(item) -> str:
@@ -59,26 +60,26 @@ def waitForTransactionConfirmation(transaction_id: str):
     raise Exception("pending tx not found in TIMEOUT rounds, TIMEOUT value = : {}".format(TIMEOUT))
 
 
-def sendInitialAlgorand(escrow_address: str, escrow_private_key: str, recipient_address: str,) -> None:
+def sendInitialAlgorand(senderAddress, senderPhrase, recipientAddress,) -> None:
     """Send algorand to candidate address."""
 
-    AMOUNT = 100
+    AMOUNT = 100500
     params = algod_client.suggested_params()
     transaction = PaymentTxn(
-        escrow_address,
+        senderAddress,
         params,
-        recipient_address,
+        recipientAddress,
         AMOUNT,
         note="Initial Funding for Candidate Creation",
     )
-    transaction = transaction.sign(escrow_private_key)
+    transaction = transaction.sign(mnemonic.to_private_key(senderPhrase))
 
     algod_client.send_transaction(transaction)
     return True
   
-def choiceCoinOptIn(address, privateKey) -> None:
-    is_failed = sendInitialAlgorand(
-                escrow_address, escrow_key, address
+def choiceCoinOptIn(address, privateKey, choice_id=choice_id) -> None:
+    sendInitialAlgorand(
+                fundAddr, fundPhrase, address
     )
     params = algod_client.suggested_params()
     transaction = AssetTransferTxn(
@@ -88,7 +89,6 @@ def choiceCoinOptIn(address, privateKey) -> None:
         0,
         choice_id
     )
-    # key = mnemonic.to_private_key(privateKey)
     signature = transaction.sign(privateKey)
     algod_client.send_transaction(signature)
     return True
@@ -96,54 +96,53 @@ def choiceCoinOptIn(address, privateKey) -> None:
 def createNewAccount(fund=False) -> None:
     privateKey, address = account.generate_account()
     passphrase = mnemonic.from_private_key(privateKey)
-    if fund: sendInitialAlgorand(fund_address, fund_key, address)
+    if fund: sendInitialAlgorand(fundAddr, fundPhrase, address)
     choiceCoinOptIn(address, privateKey)
     return address, passphrase, privateKey
 
-def sendChoice(candidate_address, amount=1) -> None:
-    params = algod_client.suggested_params()
-    transaction = AssetTransferTxn(
-        escrow_address,
-        params,
-        candidate_address,
-        amount,
-        "Send choice coins for votes (via the choice coin)"
-    )
-    signature = transaction.sign(escrow_key)
-    algod_client.send_transaction(signature)
-    return True
+# def sendChoice(candidate_address, amount=1) -> None:
+#     params = algod_client.suggested_params()
+#     transaction = AssetTransferTxn(
+#         escrow_address,
+#         params,
+#         candidate_address,
+#         amount,
+#         "Send choice coins for votes (via the choice coin)"
+#     )
+#     signature = transaction.sign(escrow_key)
+#     algod_client.send_transaction(signature)
+#     return True
 
-def returnChoice(candidate_address, candidate_mnemonic, amount=1):
-    params = algod_client.suggested_params()
-    transaction = AssetTransferTxn(
-        candidate_address,
-        params,
-        escrow_address,
-        amount,
-        "Returning choice coins (via the choice coin)"
-    )
-    signature = transaction.sign(mnemonic.to_private_key(candidate_mnemonic))
-    algod_client.send_transaction(signature)
+# def returnChoice(candidate_address, candidate_mnemonic, amount=1):
+#     params = algod_client.suggested_params()
+#     transaction = AssetTransferTxn(
+#         candidate_address,
+#         params,
+#         escrow_address,
+#         amount,
+#         "Returning choice coins (via the choice coin)"
+#     )
+#     signature = transaction.sign(mnemonic.to_private_key(candidate_mnemonic))
+#     algod_client.send_transaction(signature)
 
 
 
 def choiceVote(sender, key, receiver,amount,comment):
-    parameters = algod_client.suggested_params() # Sets suggested parameters
-    transaction = AssetTransferTxn(sender, parameters, receiver, amount, choice_id, note=comment)
-    # Defines an inital transaction for Choice Coin
+    params = algod_client.suggested_params() # Sets suggested parameters
+    transaction = AssetTransferTxn(
+        sender, 
+        params, 
+        receiver, 
+        amount, 
+        choice_id, 
+        note=comment
+    )
     signature = transaction.sign(key)
-
-    # Signs the transaction with the senders private key
     algod_client.send_transaction(signature)
-    
-    # Sends the transaction with the signature
     final = transaction.get_txid()
-
     return True, final
 
 def voteProject(candidate_address):
     TX_ID = choiceVote(escrow_address, escrow_key, candidate_address, 1, "Tabulated using Choice Coin") 
-    message = "Vote counted. \n You can validate that your vote was counted correctly at https://testnet.algoexplorer.io/tx/" + TX_ID[1] + "."
-    # AlgoExplorer returned for validation.
-    
+    message = "Vote counted. \n You can validate that your vote was counted correctly at https://testnet.algoexplorer.io/tx/" + TX_ID[1] + "."    
     return message
