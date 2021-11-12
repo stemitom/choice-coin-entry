@@ -2,6 +2,7 @@ from flask import Flask, flash, url_for, redirect, render_template, request, ses
 from vote import hashing
 from database import db
 from functools import wraps
+from decouple import config
 from utils import createNewAccount, choiceVote
 
 app = Flask(__name__)

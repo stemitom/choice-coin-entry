@@ -5,3 +5,4 @@ py_algorand_sdk==1.5.0
 rsa==4.7.2
 flask-wtf
 python-dotenv
+python-decouple
