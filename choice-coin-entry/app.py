@@ -3,12 +3,15 @@ from vote import hashing
 from database import db
 from functools import wraps
 from decouple import config
-from utils import createNewAccount, choiceVote
+from utils import createAccount, choiceVote
+
+SECRET_KEY = config('SECRET_KEY')
+SQLALCHEMY_DATABASE_URI = config('SQLALCHEMY_DATABASE_URI')
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///voters.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config['SECRET_KEY'] = "soft-life"
+app.config['SECRET_KEY'] = SECRET_KEY
 db.init_app(app)
 
 from models import Admin, Project, Voter
@@ -85,17 +88,13 @@ def createProject():
 		title = request.form.get("title")
 		print(title)
 		try:
-			# address, phrase, privateKey = generateAlgorandKeypair()
-			# choiceCoinOptIn(address, privateKey)
-			# choiceCoinOptIn(phrase, address, choice_id)
-			address, phrase, _ = createNewAccount()
+			address, phrase, _ = createAccount()
 			print("Account creation successful")
 			project = Project(
 				title=title,
 				address=address,
 				phrase=phrase
 			)
-			print("works")
 			db.session.add(project)
 			db.session.commit()
 			flash("Project Created", "success")

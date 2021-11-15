@@ -1,25 +1,26 @@
 import hashlib
 from algosdk import account, mnemonic
+from algosdk.future import transaction
 from algosdk.future.transaction import AssetTransferTxn, PaymentTxn
 from algosdk.v2client import algod
+from decouple import config
 
-algod_address = "https://testnet-algorand.api.purestake.io/ps2"  # Put Algod Client address here
-algod_token = "fi0QdbiBVl8hsVMCA2SUg6jnQdvAzxY48Zy2G6Yc"  # Put Algod Token here
+
+algod_address = config('ALGOD_ADDRESS')
+algod_token = config("ALGOD_TOKEN")
 headers = {
     "X-API-Key": algod_token,
 }
 algod_client = algod.AlgodClient(algod_token, algod_address, headers)
 
-escrowAddr = "3JTSHP4IT2JAHDN3PXY64E2DU6GCVPTLPXHLOK5JDSFGKH3WIV2GCFU6QY"
-escrowPhrase = "leopard gain lunch soccer slush supply engage gather pill page fence update scissors later brave image depart media indicate senior ready stand again absent worry"
+escrowAddr = config('escrowAddr')
+escrowPhrase = config('escrowPhrase')
 escrowKey = mnemonic.to_private_key(escrowPhrase)
-choice_id = 21364625
-
-fundAddr = "WHNTB5KQTGKBQSZAJ5VX745SGYJTCKSQ2PX7KA3MVCXV7FNAEGLIGOKOZE"
-fundPhrase = "foam fault power empty bulb usage round guard evoke city wish screen logic express assume extra copper kind prize table math wheat bargain absorb like"
+fundAddr = config('fundAddr')
+fundPhrase = config('fundPhrase')
 fundKey = mnemonic.to_private_key(fundPhrase)
+choice_id = 21364625
 # choice_id = 1726141
-
 
 def hashing(item) -> str:
     hash_obj = hashlib.sha512(item.encode())
@@ -60,27 +61,28 @@ def waitForTransactionConfirmation(transaction_id: str):
     raise Exception("pending tx not found in TIMEOUT rounds, TIMEOUT value = : {}".format(TIMEOUT))
 
 
-def sendInitialAlgorand(senderAddress, senderPhrase, recipientAddress,) -> None:
-    """Send algorand to candidate address."""
+    return True
 
-    AMOUNT = 100500
+def generate_algo_acc():
+    key, addr = account.generate_account()
+    phrase = mnemonic.from_private_key(key)
+    return key, phrase, addr
+
+
+def sendInitialAlgo(sender, key, recepient, amount):
     params = algod_client.suggested_params()
     transaction = PaymentTxn(
-        senderAddress,
+        sender,
         params,
-        recipientAddress,
-        AMOUNT,
-        note="Initial Funding for Candidate Creation",
+        recepient,
+        amount,
+        note="Initial funding for candidate address"
     )
-    transaction = transaction.sign(mnemonic.to_private_key(senderPhrase))
-
+    transaction = transaction.sign(key)
     algod_client.send_transaction(transaction)
     return True
-  
+
 def choiceCoinOptIn(address, privateKey, choice_id=choice_id) -> None:
-    sendInitialAlgorand(
-                fundAddr, fundPhrase, address
-    )
     params = algod_client.suggested_params()
     transaction = AssetTransferTxn(
         address,
@@ -93,12 +95,17 @@ def choiceCoinOptIn(address, privateKey, choice_id=choice_id) -> None:
     algod_client.send_transaction(signature)
     return True
 
-def createNewAccount(fund=False) -> None:
-    privateKey, address = account.generate_account()
-    passphrase = mnemonic.from_private_key(privateKey)
-    if fund: sendInitialAlgorand(fundAddr, fundPhrase, address)
-    choiceCoinOptIn(address, privateKey)
-    return address, passphrase, privateKey
+def createAccount():
+    key, phrase, addr = generate_algo_acc()
+    try:
+        sendInitialAlgo(fundAddr, fundKey, addr, 200000)
+    except:
+        raise Exception("Funding is not successful. Please try to confirm balance")
+    try:
+        choiceCoinOptIn(addr, key)
+    except:
+        raise Exception("Failed to opt in for choice asset. Please try again")
+    return addr, phrase, key
 
 # def sendChoice(candidate_address, amount=1) -> None:
 #     params = algod_client.suggested_params()
@@ -113,36 +120,23 @@ def createNewAccount(fund=False) -> None:
 #     algod_client.send_transaction(signature)
 #     return True
 
-# def returnChoice(candidate_address, candidate_mnemonic, amount=1):
-#     params = algod_client.suggested_params()
+
+# def choiceVote(sender, key, receiver,amount,comment):
+#     params = algod_client.suggested_params() # Sets suggested parameters
 #     transaction = AssetTransferTxn(
-#         candidate_address,
-#         params,
-#         escrow_address,
-#         amount,
-#         "Returning choice coins (via the choice coin)"
+#         sender, 
+#         params, 
+#         receiver, 
+#         amount, 
+#         choice_id, 
+#         note=comment
 #     )
-#     signature = transaction.sign(mnemonic.to_private_key(candidate_mnemonic))
+#     signature = transaction.sign(key)
 #     algod_client.send_transaction(signature)
+#     final = transaction.get_txid()
+#     return True, final
 
-
-
-def choiceVote(sender, key, receiver,amount,comment):
-    params = algod_client.suggested_params() # Sets suggested parameters
-    transaction = AssetTransferTxn(
-        sender, 
-        params, 
-        receiver, 
-        amount, 
-        choice_id, 
-        note=comment
-    )
-    signature = transaction.sign(key)
-    algod_client.send_transaction(signature)
-    final = transaction.get_txid()
-    return True, final
-
-def voteProject(candidate_address):
-    TX_ID = choiceVote(escrow_address, escrow_key, candidate_address, 1, "Tabulated using Choice Coin") 
-    message = "Vote counted. \n You can validate that your vote was counted correctly at https://testnet.algoexplorer.io/tx/" + TX_ID[1] + "."    
-    return message
+# def voteProject(candidate_address):
+#     TX_ID = choiceVote(escrow_address, escrow_key, candidate_address, 1, "Tabulated using Choice Coin") 
+#     message = "Vote counted. \n You can validate that your vote was counted correctly at https://testnet.algoexplorer.io/tx/" + TX_ID[1] + "."    
+#     return message
