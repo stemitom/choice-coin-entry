@@ -3,7 +3,7 @@ from vote import hashing
 from database import db
 from functools import wraps
 from decouple import config
-from utils import createAccount, choiceVote
+from utils import createAccount #choiceVote
 
 SECRET_KEY = config('SECRET_KEY')
 SQLALCHEMY_DATABASE_URI = config('SQLALCHEMY_DATABASE_URI')
@@ -75,6 +75,7 @@ def adminLogIn():
 
 
 @app.route("/corporate/admin/signout", methods=["POST"])
+@is_admin
 def adminLogOut():
 	session.pop("admin")
 	flash("Logged out successfully", "info")
@@ -88,11 +89,11 @@ def createProject():
 		title = request.form.get("title")
 		print(title)
 		try:
-			address, phrase, _ = createAccount()
+			addr, phrase, _ = createAccount()
 			print("Account creation successful")
 			project = Project(
 				title=title,
-				address=address,
+				address=addr,
 				phrase=phrase
 			)
 			db.session.add(project)
@@ -119,11 +120,7 @@ def createExecutives():
 			flash("Voter is already registered", "danger")
 			return render_template("createExecutives.html")
 		print("Voter section successful")
-		# accountResponse = createNewAccount()
-		# address = accountResponse["address"]
-		# phrase = accountResponse["phrase"]
-		address, phrase, _ = createNewAccount(fund=True)
-		# print(accountResponse)
+		address, phrase, _ = createAccount()
 		voter = Voter(
 			ssn = ssn,
 			license_id=license_id,
@@ -139,7 +136,11 @@ def createExecutives():
 		return redirect(url_for("createExecutives"))
 	return render_template("createExecutives.html")
 
-@app.route("/corporate/vote", methods=["GET", "POST"])
+@app.route("/corporate/poll")
+def poll():
+	return render_template("poll.html")
+
+@app.route("/corporate/vote", methods=["POST"])
 def vote():
 	levelMap = {
 		'CEO': 10,

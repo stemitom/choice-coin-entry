@@ -4,6 +4,7 @@ from algosdk.future import transaction
 from algosdk.future.transaction import AssetTransferTxn, PaymentTxn
 from algosdk.v2client import algod
 from decouple import config
+from typing import Tuple
 
 
 algod_address = config('ALGOD_ADDRESS')
@@ -39,7 +40,7 @@ def getWalletBalance(address: str) -> int:
     account = algod_client.account_info(address)
     return account["amount"]
 
-def waitForTransactionConfirmation(transaction_id: str):
+def waitForTransactionConfirmation(transaction_id: str) -> None:
     """Wait until the transaction is confirmed or rejected, or until timeout snumber of rounds have passed."""
 
     TIMEOUT = 4
@@ -60,16 +61,13 @@ def waitForTransactionConfirmation(transaction_id: str):
         current_round += 1
     raise Exception("pending tx not found in TIMEOUT rounds, TIMEOUT value = : {}".format(TIMEOUT))
 
-
-    return True
-
-def generate_algo_acc():
+def generate_algo_acc() -> Tuple[str, str, str]:
     key, addr = account.generate_account()
     phrase = mnemonic.from_private_key(key)
     return key, phrase, addr
 
 
-def sendInitialAlgo(sender, key, recepient, amount):
+def sendInitialAlgo(sender, key, recepient, amount) -> bool:
     params = algod_client.suggested_params()
     transaction = PaymentTxn(
         sender,
@@ -79,7 +77,8 @@ def sendInitialAlgo(sender, key, recepient, amount):
         note="Initial funding for candidate address"
     )
     transaction = transaction.sign(key)
-    algod_client.send_transaction(transaction)
+    transaction_id = algod_client.send_transaction(transaction)
+    waitForTransactionConfirmation(transaction_id)
     return True
 
 def choiceCoinOptIn(address, privateKey, choice_id=choice_id) -> None:
@@ -92,13 +91,14 @@ def choiceCoinOptIn(address, privateKey, choice_id=choice_id) -> None:
         choice_id
     )
     signature = transaction.sign(privateKey)
-    algod_client.send_transaction(signature)
+    transaction_id = algod_client.send_transaction(signature)
+    waitForTransactionConfirmation(transaction_id)
     return True
 
-def createAccount():
+def createAccount() -> Tuple[str, str, str]:
     key, phrase, addr = generate_algo_acc()
     try:
-        sendInitialAlgo(fundAddr, fundKey, addr, 200000)
+        sendInitialAlgo(fundAddr, fundKey, addr, 300000)
     except:
         raise Exception("Funding is not successful. Please try to confirm balance")
     try:
