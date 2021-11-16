@@ -1,5 +1,6 @@
 import sqlite3 as sl
-conn = sl.connect('voters.db')
+
+conn = sl.connect("voters.db")
 # with conn:
 #     conn.execute(
 #         """CREATE TABLE USER (

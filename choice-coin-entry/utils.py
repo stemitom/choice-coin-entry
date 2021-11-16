@@ -7,25 +7,26 @@ from decouple import config
 from typing import Tuple
 
 
-algod_address = config('ALGOD_ADDRESS')
+algod_address = config("ALGOD_ADDRESS")
 algod_token = config("ALGOD_TOKEN")
 headers = {
     "X-API-Key": algod_token,
 }
 algod_client = algod.AlgodClient(algod_token, algod_address, headers)
 
-escrowAddr = config('escrowAddr')
-escrowPhrase = config('escrowPhrase')
+escrowAddr = config("escrowAddr")
+escrowPhrase = config("escrowPhrase")
 escrowKey = mnemonic.to_private_key(escrowPhrase)
-fundAddr = config('fundAddr')
-fundPhrase = config('fundPhrase')
+fundAddr = config("fundAddr")
+fundPhrase = config("fundPhrase")
 fundKey = mnemonic.to_private_key(fundPhrase)
 choice_id = 21364625
-# choice_id = 1726141
+
 
 def hashing(item) -> str:
     hash_obj = hashlib.sha512(item.encode())
     return hash_obj.hexdigest()
+
 
 def containChoiceCoin(address) -> bool:
     account = algod_client.account_info(address)
@@ -36,9 +37,11 @@ def containChoiceCoin(address) -> bool:
             break
     return contains_choice
 
+
 def getWalletBalance(address: str) -> int:
     account = algod_client.account_info(address)
     return account["amount"]
+
 
 def waitForTransactionConfirmation(transaction_id: str) -> None:
     """Wait until the transaction is confirmed or rejected, or until timeout snumber of rounds have passed."""
@@ -59,7 +62,10 @@ def waitForTransactionConfirmation(transaction_id: str) -> None:
 
         algod_client.status_after_block(current_round)
         current_round += 1
-    raise Exception("pending tx not found in TIMEOUT rounds, TIMEOUT value = : {}".format(TIMEOUT))
+    raise Exception(
+        "pending tx not found in TIMEOUT rounds, TIMEOUT value = : {}".format(TIMEOUT)
+    )
+
 
 def generate_algo_acc() -> Tuple[str, str, str]:
     key, addr = account.generate_account()
@@ -70,30 +76,22 @@ def generate_algo_acc() -> Tuple[str, str, str]:
 def sendInitialAlgo(sender, key, recepient, amount) -> bool:
     params = algod_client.suggested_params()
     transaction = PaymentTxn(
-        sender,
-        params,
-        recepient,
-        amount,
-        note="Initial funding for candidate address"
+        sender, params, recepient, amount, note="Initial funding for candidate address"
     )
     transaction = transaction.sign(key)
     transaction_id = algod_client.send_transaction(transaction)
     waitForTransactionConfirmation(transaction_id)
     return True
 
+
 def choiceCoinOptIn(address, privateKey, choice_id=choice_id) -> None:
     params = algod_client.suggested_params()
-    transaction = AssetTransferTxn(
-        address,
-        params,
-        address,
-        0,
-        choice_id
-    )
+    transaction = AssetTransferTxn(address, params, address, 0, choice_id)
     signature = transaction.sign(privateKey)
     transaction_id = algod_client.send_transaction(signature)
     waitForTransactionConfirmation(transaction_id)
     return True
+
 
 def createAccount() -> Tuple[str, str, str]:
     key, phrase, addr = generate_algo_acc()
@@ -107,36 +105,23 @@ def createAccount() -> Tuple[str, str, str]:
         raise Exception("Failed to opt in for choice asset. Please try again")
     return addr, phrase, key
 
-# def sendChoice(candidate_address, amount=1) -> None:
-#     params = algod_client.suggested_params()
-#     transaction = AssetTransferTxn(
-#         escrow_address,
-#         params,
-#         candidate_address,
-#         amount,
-#         "Send choice coins for votes (via the choice coin)"
-#     )
-#     signature = transaction.sign(escrow_key)
-#     algod_client.send_transaction(signature)
-#     return True
 
+def sendChoice(candidate_address, amount=1) -> None:
+    params = algod_client.suggested_params()
+    transaction = AssetTransferTxn(
+        escrowAddr,
+        params,
+        candidate_address,
+        amount,
+        "Send choice coins for votes (via the Corporate voting mechanism)",
+    )
+    signature = transaction.sign(escrowKey)
+    transaction_id = algod_client.send_transaction(signature)
+    print(transaction_id)
+    return True
 
-# def choiceVote(sender, key, receiver,amount,comment):
-#     params = algod_client.suggested_params() # Sets suggested parameters
-#     transaction = AssetTransferTxn(
-#         sender, 
-#         params, 
-#         receiver, 
-#         amount, 
-#         choice_id, 
-#         note=comment
-#     )
-#     signature = transaction.sign(key)
-#     algod_client.send_transaction(signature)
-#     final = transaction.get_txid()
-#     return True, final
 
 # def voteProject(candidate_address):
-#     TX_ID = choiceVote(escrow_address, escrow_key, candidate_address, 1, "Tabulated using Choice Coin") 
-#     message = "Vote counted. \n You can validate that your vote was counted correctly at https://testnet.algoexplorer.io/tx/" + TX_ID[1] + "."    
+#     TX_ID = choiceVote(escrow_address, escrow_key, candidate_address, 1, "Tabulated using Choice Coin")
+#     message = "Vote counted. \n You can validate that your vote was counted correctly at https://testnet.algoexplorer.io/tx/" + TX_ID[1] + "."
 #     return message
