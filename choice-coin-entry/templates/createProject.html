@@ -47,7 +47,7 @@
               <p class="description">
                 Lorem ipsum dolor, sit amet consectetur adipisicing elit
               </p>
-              <form action="{{ url_for('createProject') }}" method="post">
+              <form enctype="multipart/form-data" action="{{ url_for('createProject') }}" method="post">
                 <div class="field">
                   <div class="control">
                     <input
@@ -59,7 +59,7 @@
                   </div>
                 </div>
                 <div class="field">
-                  <div class="file has-name">
+                  <div class="file has-name is-medium">
                     <label class="file-label">
                       <input class="file-input" type="file" name="image-file" />
                       <span class="file-cta">
@@ -68,9 +68,7 @@
                         </span>
                         <span class="file-label"> Choose a file… </span>
                       </span>
-                      <span class="file-name">
-                        Upload Project Image
-                      </span>
+                      <span class="file-name"> Upload Project Image </span>
                     </label>
                   </div>
                 </div>
@@ -80,6 +78,7 @@
                     <textarea
                       class="textarea"
                       placeholder="Description"
+                      name="message"
                     ></textarea>
                   </div>
                 </div>

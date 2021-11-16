@@ -24,13 +24,15 @@ class Project(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(20), nullable=False, unique=True)
-    # category = db.Column(db.Text, nullable=False)
-    # target = db.Column(db.Integer, nullable=False)
-    address = db.Column(db.String(1000), nullable=False, unique=True)
-    phrase = db.Column(db.String(512), nullable=False, unique=True)
+    description = db.Column(db.String(1000), nullable=False)
+    image = db.Column(db.String(100), nullable=False, unique=True)
     number_of_votes = db.Column(db.Integer, default=0)
+    address = db.Column(db.String(512), nullable=False, unique=True)
+    phrase = db.Column(db.String(512), nullable=False, unique=True)
     votes = db.relationship("Vote", backref="voter", lazy="dynamic")
     participants = db.relationship("Participant", backref="project", lazy="dynamic")
+    # category = db.Column(db.Text, nullable=False)
+    # target = db.Column(db.Integer, nullable=False)
 
 
 @unique

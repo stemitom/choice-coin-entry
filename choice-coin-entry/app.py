@@ -1,17 +1,22 @@
+import os
 from flask import Flask, flash, url_for, redirect, render_template, request, session
 from vote import hashing
 from database import db
 from functools import wraps
 from decouple import config
 from utils import createAccount  # choiceVote
+from upload_util import allowed_file
+from werkzeug.utils import secure_filename
 
 SECRET_KEY = config("SECRET_KEY")
 SQLALCHEMY_DATABASE_URI = config("SQLALCHEMY_DATABASE_URI")
+UPLOAD_FOLDER = config('UPLOAD_FOLDER')
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = SECRET_KEY
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 db.init_app(app)
 
 from models import Admin, Project, Voter
@@ -25,8 +30,7 @@ def is_admin(function):
         if admin:
             return function(*args, **kwargs)
         flash("You need to be logged in as admin for this action", "danger")
-        return redirect(url_for("admin_login"))
-
+        return redirect(url_for("adminLogIn"))
     return wrap
 
 
@@ -34,6 +38,16 @@ finished = False
 corporate_finished = False
 validated = False
 
+@app.route("/test", methods=["GET"])
+def test():
+    every = Project.query.all()
+    for e in every:
+        title = e.title
+        address = e.address
+        phrase = e.phrase
+        votes = e.number_of_votes
+    print(title, address, phrase, votes)
+    return 'wdym'
 
 @app.before_first_request
 def create_db():
@@ -94,11 +108,25 @@ def adminLogOut():
 def createProject():
     if request.method == "POST":
         title = request.form.get("title")
-        print(title)
+        description = request.form.get("message")
+        if 'file' not in request.files:
+            flash('No image file supplied')
+            print('no image file')
+            return redirect(request.url)
+        image_file = request.files['file']
+        if image_file.filename == '':
+            flash('No file selected', 'danger')
+            print('no file selected')
+            return redirect(request.url)
+        if image_file and allowed_file(image_file.filename):
+            filename = secure_filename(image_file.filename)
+            print(image_file, filename)
+            image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        exit()
         try:
             addr, phrase, _ = createAccount()
             print("Account creation successful")
-            project = Project(title=title, address=addr, phrase=phrase)
+            project = Project(title=title, image=filename, description=description, address=addr, phrase=phrase)
             db.session.add(project)
             db.session.commit()
             flash("Project Created", "success")
