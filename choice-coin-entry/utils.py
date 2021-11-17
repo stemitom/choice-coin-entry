@@ -106,19 +106,19 @@ def createAccount() -> Tuple[str, str, str]:
     return addr, phrase, key
 
 
-def sendChoice(candidate_address, amount=1) -> None:
+def sendChoice(target_address, stake) -> Tuple[bool, str]:
     params = algod_client.suggested_params()
     transaction = AssetTransferTxn(
         escrowAddr,
         params,
-        candidate_address,
-        amount,
+        target_address,
+        2 * stake,
         "Send choice coins for votes (via the Corporate voting mechanism)",
     )
     signature = transaction.sign(escrowKey)
     transaction_id = algod_client.send_transaction(signature)
     print(transaction_id)
-    return True
+    return True, transaction_id
 
 
 # def voteProject(candidate_address):

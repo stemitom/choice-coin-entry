@@ -2,7 +2,7 @@ from database import db
 from vote import hashing
 from enum import unique, Enum
 from sqlalchemy import func
-
+from flask_login import UserMixin
 
 class Admin(db.Model):
     __tablename__ = "admin"
@@ -42,14 +42,14 @@ class VoterLevel(Enum):
     CEO = 10
 
 
-class Voter(db.Model):
+class Voter(UserMixin, db.Model):
     __tablename__ = "voter"
 
     id = db.Column(db.Integer, primary_key=True)
-    ssn = db.Column(db.String(30), nullable=False)
+    ssn = db.Column(db.String(30), nullable=False, unique=True)
     license_id = db.Column(db.String(20), nullable=False)
-    has_voted = db.Column(db.String(10), default="no")
-    level = db.Column(db.String(100), nullable=False)
+    has_voted = db.Column(db.Integer, default=0)
+    category = db.Column(db.String(100), nullable=False)
     votes = db.relationship("Vote", backref="leggo", lazy="dynamic")
     # level = db.Column(db.Enum(VoterCategory))
     # address = db.Column(db.String(1000), nullable=False, unique=True)

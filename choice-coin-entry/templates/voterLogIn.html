@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Admin - Create a Project</title>
+    <title>Voter - Log In</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;700&display=swap"
       rel="stylesheet"
@@ -32,70 +32,33 @@
               <p>
                 Lorem, ipsum dolor sit amet consectetur adipisicing elit.
                 Corporis ex deleniti aliquam tempora libero excepturi vero
-                soluta odio optio sed.
+                soluta odio optio.
               </p>
             </div>
             <div class="column right has-text-centered">
               {% with messages = get_flashed_messages(with_categories=true) %}
               {% if messages %} {% for category, message in messages %}
-              <div class="notification is-{{ category }}" role="alert">
+              <div class="notification is-{{ category }} is-light" role="alert">
                 <button class="delete"></button>
                 {{ message|capitalize }}
               </div>
               {% endfor %} {% endif %} {% endwith %}
-              <h1 class="title is-4">Admin - Create a Project</h1>
+              <h1 class="title is-4">Voter - Log In</h1>
               <p class="description">
                 Lorem ipsum dolor, sit amet consectetur adipisicing elit
               </p>
-              <form action="{{ url_for('createProject') }}" method="post" enctype="multipart/form-data">
+              <form action="{{ url_for('voterLogIn') }}" method="post">
                 <div class="field">
                   <div class="control">
                     <input
                       class="input is-medium"
-                      type="text"
-                      name="title"
-                      placeholder="Project Title"
+                      type="password"
+                      name="ssn"
+                      placeholder="Social Security"
                     />
                   </div>
                 </div>
-                <div class="field">
-                  <div id="file-js-example" class="file has-name">
-                    <label class="file-label">
-                      <input class="file-input" type="file" name="project-image">
-                      <span class="file-cta">
-                        <span class="file-icon">
-                          <i class="fas fa-upload"></i>
-                        </span>
-                        <span class="file-label">
-                          Choose a file…
-                        </span>
-                      </span>
-                      <span class="file-name">
-                        No file uploaded
-                      </span>
-                    </label>
-                  </div>
-                  
-                  <script>
-                    const fileInput = document.querySelector('#file-js-example input[type=file]');
-                    fileInput.onchange = () => {
-                      if (fileInput.files.length > 0) {
-                        const fileName = document.querySelector('#file-js-example .file-name');
-                        fileName.textContent = fileInput.files[0].name;
-                      }
-                    }
-                  </script>
-                </div>
 
-                <div class="field">
-                  <div class="control">
-                    <textarea
-                      class="textarea"
-                      placeholder="Description"
-                      name="message"
-                    ></textarea>
-                  </div>
-                </div>
                 <button
                   class="button is-block is-primary is-fullwidth is-medium"
                 >
@@ -142,20 +105,20 @@
         </div>
       </div>
     </section>
-  </body>
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      (document.querySelectorAll(".notification .delete") || []).forEach(
-        ($delete) => {
-          const $notification = $delete.parentNode;
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        (document.querySelectorAll(".notification .delete") || []).forEach(
+          ($delete) => {
+            const $notification = $delete.parentNode;
 
-          $delete.addEventListener("click", () => {
-            $notification.parentNode.removeChild($notification);
-          });
-        }
-      );
-    });
-  </script>
+            $delete.addEventListener("click", () => {
+              $notification.parentNode.removeChild($notification);
+            });
+          }
+        );
+      });
+    </script>
+  </body>
   <style>
     :root {
       --brandColor: hsl(166, 67%, 51%);

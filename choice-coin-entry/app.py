@@ -4,23 +4,31 @@ from vote import hashing
 from database import db
 from functools import wraps
 from decouple import config
-from utils import createAccount  # choiceVote
+from utils import createAccount, sendChoice
 from upload_util import allowed_file
 from werkzeug.utils import secure_filename
+from flask_login import LoginManager, login_user, login_required, current_user
 
 SECRET_KEY = config("SECRET_KEY")
 SQLALCHEMY_DATABASE_URI = config("SQLALCHEMY_DATABASE_URI")
-UPLOAD_FOLDER = config('UPLOAD_FOLDER')
+UPLOAD_FOLDER = config("UPLOAD_FOLDER")
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = SECRET_KEY
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 db.init_app(app)
+
+login_manager = LoginManager()
+login_manager.login_view = 'voterLogin'
+login_manager.init_app(app)
 
 from models import Admin, Project, Voter
 
+@login_manager.user_loader
+def load_user(ssn):
+    return Voter.query.get(ssn)
 
 def is_admin(function):
     @wraps(function)
@@ -38,16 +46,12 @@ finished = False
 corporate_finished = False
 validated = False
 
+
 @app.route("/test", methods=["GET"])
 def test():
-    every = Project.query.all()
-    for e in every:
-        title = e.title
-        address = e.address
-        phrase = e.phrase
-        votes = e.number_of_votes
-    print(title, address, phrase, votes)
-    return 'wdym'
+    projects = Project.query.all()
+    return render_template("test.html", projects=projects)
+
 
 @app.before_first_request
 def create_db():
@@ -109,24 +113,26 @@ def createProject():
     if request.method == "POST":
         title = request.form.get("title")
         description = request.form.get("message")
-        if 'file' not in request.files:
-            flash('No image file supplied')
-            print('no image file')
+        if "project-image" not in request.files:
+            flash("No image file supplied")
             return redirect(request.url)
-        image_file = request.files['file']
-        if image_file.filename == '':
-            flash('No file selected', 'danger')
-            print('no file selected')
+        image_file = request.files["project-image"]
+        if image_file.filename == "":
+            flash("No file selected", "danger")
             return redirect(request.url)
         if image_file and allowed_file(image_file.filename):
             filename = secure_filename(image_file.filename)
-            print(image_file, filename)
-            image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        exit()
+            image_file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
         try:
             addr, phrase, _ = createAccount()
             print("Account creation successful")
-            project = Project(title=title, image=filename, description=description, address=addr, phrase=phrase)
+            project = Project(
+                title=title,
+                image=filename,
+                description=description,
+                address=addr,
+                phrase=phrase,
+            )
             db.session.add(project)
             db.session.commit()
             flash("Project Created", "success")
@@ -152,60 +158,56 @@ def createExecutives():
             flash("Voter is already registered", "danger")
             return render_template("createExecutives.html")
         print("Voter section successful")
-        # address, phrase, _ = createAccount()
         voter = Voter(ssn=ssn, license_id=license_id, category=category)
-        # address=address,
-        # phrase=phrase
         db.session.add(voter)
         db.session.commit()
         flash("Executive voter created successfully", "success")
-        # flash(address, "warning")
-        # flash(phrase, "info")
         return redirect(url_for("createExecutives"))
     return render_template("createExecutives.html")
 
-
-@app.route("/corporate/poll")
-def poll():
-    return render_template("poll.html")
-
-
-@app.route("/corporate/vote", methods=["POST"])
-def vote():
-    levelMap = {"CEO": 10, "CTO": 5, "Staff": 2}
-    if request.method == "POST":
+@app.route("/corporate/voter/login", methods=["GET", "POST"])
+def voterLogIn():
+    if request.method == 'POST':
         ssn = request.form.get("ssn")
-        projectTitle = request.form.get("project")
-        voter = Voter.query.filter_by(ssn=ssn)
-        project = Project.query.filter_by(title=projectTitle)
-        if not voter:
-            flash("You are ineligible to vote", "danger")
-            return redirect(url_for("vote"))
-        if voter.has_voted == "yes":
+        voter = Voter.query.filter_by(ssn=ssn).first()
+        if voter:
+            login_user(voter, remember=False)
+            return redirect(url_for('poll'))
+        flash("Please check your login details and try again", "danger")
+        return redirect(request.url)
+    return render_template("voterLogIn.html")
+
+
+@app.route("/corporate/poll", methods=["GET", "POST"])
+@login_required
+def poll():
+    if request.method == "POST":
+        title = (list(request.form.lists())[0][0])
+        levelMap = {"CEO": 10, "CTO": 5, "Staff": 2}
+        voter = Voter.query.filter_by(ssn=current_user.ssn).first()
+        if voter.has_voted:
             flash("You can't vote multiple times", "danger")
-            return redirect(url_for("vote"))
-        voteDetails = choiceVote(
-            voter.address,
-            voter.phrase,
-            project.address,
-            levelMap[voter.level] * 1,
-            "Tabulated using Choice Coin",
-        )
-        transactionID = voteDetails[1]
-        if not voteDetails[0]:
-            flash("Something occured! Please do try again", "danger")
-            return redirect(url_for("vote"))
-        message = f"Voted counted. You can can confirm by visiting https://testnet.algoexplorer.io/tx/{transactionID}"
+            return redirect(request.url)
+        project = Project.query.filter_by(title=title).first()
+        voteStatus = sendChoice(project.address, stake=levelMap[current_user.category])
+        transaction_id = voteStatus[1]
         project.number_of_votes += 1
+        voter.has_voted = 1
         db.session.commit()
-        flash(message, "success")
-        return redirect(url_for("vote"))
+        flash(f"You have successfully voted. Check your vote transactions at https://testnet.algoexplorer.io/tx/{transaction_id}", "success")
+        return redirect(request.url)
+    projects = Project.query.all()
+    return render_template("poll.html", projects=projects)
 
 
 @app.route("/about/", methods=["GET"])
 def about():
     """about"""
     return render_template("about.html")
+
+@app.route("/contact", methods=["GET"])
+def contact():
+    return render_template("contact.html")
 
 
 # @app.route('/corporate-start', methods = ['POST', 'GET'])
