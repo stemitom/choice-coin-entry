@@ -27,8 +27,8 @@ login_manager.init_app(app)
 from models import Admin, Project, Voter
 
 @login_manager.user_loader
-def load_user(ssn):
-    return Voter.query.get(ssn)
+def load_user(id):
+    return Voter.query.get(id)
 
 def is_admin(function):
     @wraps(function)
@@ -99,7 +99,7 @@ def adminLogIn():
     return render_template("adminLogIn.html")
 
 
-@app.route("/corporate/admin/signout", methods=["POST"])
+@app.route("/corporate/admin/signout", methods=["GET", "POST"])
 @is_admin
 def adminLogOut():
     session.pop("admin")

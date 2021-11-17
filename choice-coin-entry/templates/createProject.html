@@ -27,12 +27,14 @@
         <div class="column is-8 is-offset-2 register">
           <div class="columns">
             <div class="column left">
-              <h1 class="title is-1">The Squid Choices</h1>
-              <h2 class="subtitle colored is-4">Lorem ipsum dolor sit amet.</h2>
+              <h1 class="title is-1">Choice Coin</h1>
+              <h2 class="subtitle colored is-4">
+                <em>A democratic token for a new era.</em>
+              </h2>
               <p>
-                Lorem, ipsum dolor sit amet consectetur adipisicing elit.
-                Corporis ex deleniti aliquam tempora libero excepturi vero
-                soluta odio optio sed.
+                A governance token that powers the Fortior Voting Protocol,
+                which leverages Artificial Intelligence and Quantum Computing to
+                voting algorithms that are secure, efficient, and equitable.
               </p>
             </div>
             <div class="column right has-text-centered">
@@ -45,9 +47,14 @@
               {% endfor %} {% endif %} {% endwith %}
               <h1 class="title is-4">Admin - Create a Project</h1>
               <p class="description">
-                Lorem ipsum dolor, sit amet consectetur adipisicing elit
+                Welcome to Choice Coin, please fill in the correct details to
+                proceed
               </p>
-              <form action="{{ url_for('createProject') }}" method="post" enctype="multipart/form-data">
+              <form
+                action="{{ url_for('createProject') }}"
+                method="post"
+                enctype="multipart/form-data"
+              >
                 <div class="field">
                   <div class="control">
                     <input
@@ -61,29 +68,33 @@
                 <div class="field">
                   <div id="file-js-example" class="file has-name">
                     <label class="file-label">
-                      <input class="file-input" type="file" name="project-image">
+                      <input
+                        class="file-input"
+                        type="file"
+                        name="project-image"
+                      />
                       <span class="file-cta">
                         <span class="file-icon">
                           <i class="fas fa-upload"></i>
                         </span>
-                        <span class="file-label">
-                          Choose a file…
-                        </span>
+                        <span class="file-label"> Choose a file… </span>
                       </span>
-                      <span class="file-name">
-                        No file uploaded
-                      </span>
+                      <span class="file-name"> No file uploaded </span>
                     </label>
                   </div>
-                  
+
                   <script>
-                    const fileInput = document.querySelector('#file-js-example input[type=file]');
+                    const fileInput = document.querySelector(
+                      "#file-js-example input[type=file]"
+                    );
                     fileInput.onchange = () => {
                       if (fileInput.files.length > 0) {
-                        const fileName = document.querySelector('#file-js-example .file-name');
+                        const fileName = document.querySelector(
+                          "#file-js-example .file-name"
+                        );
                         fileName.textContent = fileInput.files[0].name;
                       }
-                    }
+                    };
                   </script>
                 </div>
 
@@ -102,7 +113,7 @@
                   Submit
                 </button>
                 <br />
-                <small><em>Lorem ipsum dolor sit amet consectetur.</em></small>
+                <small><em>A democratic token for a new era.</em></small>
               </form>
             </div>
           </div>
@@ -135,7 +146,7 @@
             </div>
             <div class="level-right">
               <small class="level-item" style="color: var(--textLight)">
-                &copy; Super Cool Website. All Rights Reserved.
+                &copy; The Choice Voting Mechanism
               </small>
             </div>
           </nav>
