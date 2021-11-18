@@ -88,7 +88,7 @@
               var choiceDistribution = {{ choiceBalances | safe}};
             
               var myChart = new Chart(ctx, {
-                type: "bar",
+                type: "pie",
                 data: {
                   labels: titles,
                   datasets: [
@@ -116,11 +116,16 @@
                 options: {
                   maintainAspectRatio: false,
                   responsive: false,
+                  scales: {
+                    y: {
+                      beginAtZero: true
+                    }
+                  }
                 },
               });
 
               var coinChart = new Chart(cChart, {
-                type: "bar",
+                type: "pie",
                 data: {
                   labels: titles,
                   datasets: [

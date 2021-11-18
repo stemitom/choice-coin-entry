@@ -4,6 +4,7 @@ from enum import unique, Enum
 from sqlalchemy import func
 from flask_login import UserMixin
 
+
 class Admin(db.Model):
     __tablename__ = "admin"
 
@@ -31,7 +32,8 @@ class Project(db.Model):
     address = db.Column(db.String(512), nullable=False, unique=True)
     phrase = db.Column(db.String(512), nullable=False, unique=True)
     votes = db.relationship("Vote", backref="voter", lazy="dynamic")
-    participants = db.relationship("Participant", backref="project", lazy="dynamic")
+    participants = db.relationship(
+        "Participant", backref="project", lazy="dynamic")
     # category = db.Column(db.Text, nullable=False)
     # target = db.Column(db.Integer, nullable=False)
 
@@ -50,6 +52,7 @@ class Voter(UserMixin, db.Model):
     ssn = db.Column(db.String(30), nullable=False, unique=True)
     license_id = db.Column(db.String(20), nullable=False)
     has_voted = db.Column(db.Integer, default=0)
+    logged_in = db.Column(db.Integer, default=0)
     category = db.Column(db.String(100), nullable=False)
     votes = db.relationship("Vote", backref="leggo", lazy="dynamic")
     # level = db.Column(db.Enum(VoterCategory))
@@ -69,7 +72,8 @@ class Participant(db.Model):
     __tablename__ = "participant"
 
     id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, db.ForeignKey("project.id"), nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey(
+        "project.id"), nullable=False)
     name = db.Column(db.String(120), nullable=True)
     address = db.Column(db.String(100), nullable=False, unique=True)
     private_key = db.Column(db.String(100), nullable=False, unique=True)

@@ -1,3 +1,4 @@
+from models import Admin, Project, Voter
 import os
 from flask import Flask, flash, url_for, redirect, render_template, request, session, Markup
 from vote import hashing
@@ -21,10 +22,8 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 db.init_app(app)
 
 login_manager = LoginManager()
-login_manager.login_view = "voterLogin"
+login_manager.login_view = "voterLogIn"
 login_manager.init_app(app)
-
-from models import Admin, Project, Voter
 
 
 @login_manager.user_loader
@@ -58,6 +57,8 @@ def test():
 
 @app.before_first_request
 def create_db():
+    if os.path.exists("./voters.db"):
+        os.remove("./voters.db")
     db.create_all()
 
 
@@ -125,7 +126,8 @@ def createProject():
             return redirect(request.url)
         if image_file and allowed_file(image_file.filename):
             filename = secure_filename(image_file.filename)
-            image_file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+            image_file.save(os.path.join(
+                app.config["UPLOAD_FOLDER"], filename))
         try:
             addr, phrase, _ = createAccount()
             print("Account creation successful")
@@ -153,7 +155,7 @@ def createExecutives():
         ssn = request.form.get("ssn")
         license_id = request.form.get("license_id")
         category = request.form.get("position")
-        if not category in ["CEO", "CTO", "Employee"]:
+        if not category in ["CEO", "CTO", "Staff"]:
             flash("Position selected is not valid")
             return render_template("createExecutives.html")
         print(category)
@@ -176,6 +178,8 @@ def voterLogIn():
         voter = Voter.query.filter_by(ssn=ssn).first()
         if voter:
             login_user(voter, remember=False)
+            current_user.logged_in = 1
+            db.session.commit()
             return redirect(url_for("poll"))
         flash("Please check your login details and try again", "danger")
         return redirect(request.url)
@@ -188,6 +192,9 @@ def poll():
     if request.method == "POST":
         title = list(request.form.lists())[0][0]
         levelMap = {"CEO": 10, "CTO": 5, "Staff": 2}
+        if not current_user.logged_in:
+            flash("Login before you vote")
+            return redirect(url_for('voterLogIn'))
         voter = Voter.query.filter_by(ssn=current_user.ssn).first()
         if voter.has_voted:
             flash("You can't vote multiple times", "danger")
@@ -202,7 +209,9 @@ def poll():
         voter.has_voted = 1
         db.session.commit()
         flash(
-            f"You have successfully voted. Check your vote transactions at <a href='https://testnet.algoexplorer.io/tx/{transaction_id}'> View Transactions.</a>",
+            "You have successfully voted. Check your vote transactions at " +
+            Markup(
+                "<a href='https://testnet.algoexplorer.io/tx/{transaction_id}'> View Transactions.</a>"),
             "success",
         )
         print(transaction_id)
@@ -222,7 +231,7 @@ def contact():
     return render_template("contact.html")
 
 
-@app.route("/corporate/admin/startVote", methods=["GET", "POST"])
+@app.route("/corporate/admin/start", methods=["GET", "POST"])
 @is_admin
 def startVote():
     global corporate_finished
@@ -251,8 +260,12 @@ def results():
         titleList.append(project.title)
         voteNoList.append(project.number_of_votes)
         choiceAmtList.append(getChoiceWalletBalance(project.address))
+    print(titleList)
+    print(voteNoList)
+    print(choiceAmtList)
     winner = titleList[choiceAmtList.index(max(choiceAmtList))]
     return render_template("results.html", titles=titleList, votes=voteNoList, choiceBalances=choiceAmtList, winner=winner)
+
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", debug=True)

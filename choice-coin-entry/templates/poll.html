@@ -6,7 +6,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="shortcut icon" href="../images/fav_icon.png" type="image/x-icon" />
-  <title>Modal Cards - Free Bulma template</title>
+  <title>Voter - Voting Page</title>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
   <link rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/overlayscrollbars/1.9.1/css/OverlayScrollbars.min.css" />
@@ -28,12 +28,7 @@
 <body>
   {% include 'head.html' %}
   <section class="container">
-    <div class="columns features">
-      <div class="notification is-{{ category }} is-light" role="alert">
-        <button class="delete"></button>
-        {{ message|capitalize }}
-      </div>
-      {% endfor %} {% endif %} {% endwith %}
+      <div class="columns features">
       {% for i in projects %}
       <div class="column is-4">
         <div class="card is-shady">
@@ -66,6 +61,16 @@
     </div>
     {% endfor %}
   </section>
+  <section class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %} {% for category, message in messages %}
+              <div class="notification is-{{ category }} is-light" role="alert">
+                <button class="delete"></button>
+                {{ message|capitalize }}
+              </div>
+              {% endfor %} {% endif %} {% endwith %}
+    
+  </section>
   <!-- bulma template footer by stemitom -->
   <div class="column is-8 is-offset-2">
     <br />
@@ -95,7 +100,7 @@
       </div>
       <div class="level-right">
         <small class="level-item" style="color: var(--textLight)">
-          &copy; Super Cool Website. All Rights Reserved.
+          &copy; The Choice Voting Mechanism
         </small>
       </div>
     </nav>
