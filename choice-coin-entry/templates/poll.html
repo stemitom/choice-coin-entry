@@ -29,6 +29,11 @@
   {% include 'head.html' %}
   <section class="container">
     <div class="columns features">
+      <div class="notification is-{{ category }} is-light" role="alert">
+        <button class="delete"></button>
+        {{ message|capitalize }}
+      </div>
+      {% endfor %} {% endif %} {% endwith %}
       {% for i in projects %}
       <div class="column is-4">
         <div class="card is-shady">

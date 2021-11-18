@@ -1,5 +1,5 @@
 import os
-from flask import Flask, flash, url_for, redirect, render_template, request, session
+from flask import Flask, flash, url_for, redirect, render_template, request, session, Markup
 from vote import hashing
 from database import db
 from functools import wraps
@@ -202,7 +202,7 @@ def poll():
         voter.has_voted = 1
         db.session.commit()
         flash(
-            f"You have successfully voted. Check your vote transactions at https://testnet.algoexplorer.io/tx/{transaction_id}",
+            f"You have successfully voted. Check your vote transactions at <a href='https://testnet.algoexplorer.io/tx/{transaction_id}'> View Transactions.</a>",
             "success",
         )
         print(transaction_id)
