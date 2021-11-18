@@ -4,7 +4,7 @@ from algosdk.future import transaction
 from algosdk.future.transaction import AssetTransferTxn, PaymentTxn
 from algosdk.v2client import algod
 from decouple import config
-from typing import Tuple
+from typing import Tuple, Any
 
 
 algod_address = config("ALGOD_ADDRESS")
@@ -23,12 +23,12 @@ fundKey = mnemonic.to_private_key(fundPhrase)
 choice_id = 21364625
 
 
-def hashing(item) -> str:
+def hashing(item: Any) -> str:
     hash_obj = hashlib.sha512(item.encode())
     return hash_obj.hexdigest()
 
 
-def containChoiceCoin(address) -> bool:
+def containChoiceCoin(address: str) -> bool:
     account = algod_client.account_info(address)
     contains_choice = False
     for asset in account["assets"]:
@@ -37,11 +37,16 @@ def containChoiceCoin(address) -> bool:
             break
     return contains_choice
 
+def getWalletInfo(address: str) -> str:
+    details = algod_client.account_info(address)
+    return details
 
-def getWalletBalance(address: str) -> int:
-    account = algod_client.account_info(address)
-    return account["amount"]
-
+def getChoiceWalletBalance(address: str) -> int:
+    details = getWalletInfo(address)
+    for asset in details["assets"]:
+        if asset["asset-id"] == choice_id:
+            return asset["amount"]
+    raise LookupError("The wallet address is not opted into choice coin yet")
 
 def waitForTransactionConfirmation(transaction_id: str) -> None:
     """Wait until the transaction is confirmed or rejected, or until timeout snumber of rounds have passed."""
@@ -106,14 +111,15 @@ def createAccount() -> Tuple[str, str, str]:
     return addr, phrase, key
 
 
-def sendChoice(target_address, stake) -> Tuple[bool, str]:
+def sendChoice(targetAddress, stake):
     params = algod_client.suggested_params()
     transaction = AssetTransferTxn(
         escrowAddr,
         params,
-        target_address,
+        targetAddress,
         2 * stake,
-        "Send choice coins for votes (via the Corporate voting mechanism)",
+        choice_id,
+        note="Send choice coins for votes (via the Corporate voting mechanism)",
     )
     signature = transaction.sign(escrowKey)
     transaction_id = algod_client.send_transaction(signature)

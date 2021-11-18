@@ -27,6 +27,7 @@ class Project(db.Model):
     description = db.Column(db.String(1000), nullable=False)
     image = db.Column(db.String(100), nullable=False, unique=True)
     number_of_votes = db.Column(db.Integer, default=0)
+    choice_balance = db.Column(db.Float, default=0.0)
     address = db.Column(db.String(512), nullable=False, unique=True)
     phrase = db.Column(db.String(512), nullable=False, unique=True)
     votes = db.relationship("Vote", backref="voter", lazy="dynamic")

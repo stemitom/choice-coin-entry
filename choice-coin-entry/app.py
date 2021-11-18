@@ -4,7 +4,7 @@ from vote import hashing
 from database import db
 from functools import wraps
 from decouple import config
-from utils import createAccount, sendChoice
+from utils import createAccount, sendChoice, getChoiceWalletBalance
 from upload_util import allowed_file
 from werkzeug.utils import secure_filename
 from flask_login import LoginManager, login_user, login_required, current_user
@@ -21,14 +21,16 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 db.init_app(app)
 
 login_manager = LoginManager()
-login_manager.login_view = 'voterLogin'
+login_manager.login_view = "voterLogin"
 login_manager.init_app(app)
 
 from models import Admin, Project, Voter
 
+
 @login_manager.user_loader
 def load_user(id):
     return Voter.query.get(id)
+
 
 def is_admin(function):
     @wraps(function)
@@ -39,6 +41,7 @@ def is_admin(function):
             return function(*args, **kwargs)
         flash("You need to be logged in as admin for this action", "danger")
         return redirect(url_for("adminLogIn"))
+
     return wrap
 
 
@@ -165,14 +168,15 @@ def createExecutives():
         return redirect(url_for("createExecutives"))
     return render_template("createExecutives.html")
 
+
 @app.route("/corporate/voter/login", methods=["GET", "POST"])
 def voterLogIn():
-    if request.method == 'POST':
+    if request.method == "POST":
         ssn = request.form.get("ssn")
         voter = Voter.query.filter_by(ssn=ssn).first()
         if voter:
             login_user(voter, remember=False)
-            return redirect(url_for('poll'))
+            return redirect(url_for("poll"))
         flash("Please check your login details and try again", "danger")
         return redirect(request.url)
     return render_template("voterLogIn.html")
@@ -182,19 +186,26 @@ def voterLogIn():
 @login_required
 def poll():
     if request.method == "POST":
-        title = (list(request.form.lists())[0][0])
+        title = list(request.form.lists())[0][0]
         levelMap = {"CEO": 10, "CTO": 5, "Staff": 2}
         voter = Voter.query.filter_by(ssn=current_user.ssn).first()
         if voter.has_voted:
             flash("You can't vote multiple times", "danger")
             return redirect(request.url)
         project = Project.query.filter_by(title=title).first()
-        voteStatus = sendChoice(project.address, stake=levelMap[current_user.category])
+        userCategory = levelMap[current_user.category]
+        # print(current_user.category, type(userCategory))
+        voteStatus = sendChoice(project.address, stake=userCategory)
         transaction_id = voteStatus[1]
         project.number_of_votes += 1
+        project.choice_balance += 2 * userCategory
         voter.has_voted = 1
         db.session.commit()
-        flash(f"You have successfully voted. Check your vote transactions at https://testnet.algoexplorer.io/tx/{transaction_id}", "success")
+        flash(
+            f"You have successfully voted. Check your vote transactions at https://testnet.algoexplorer.io/tx/{transaction_id}",
+            "success",
+        )
+        print(transaction_id)
         return redirect(request.url)
     projects = Project.query.all()
     return render_template("poll.html", projects=projects)
@@ -205,40 +216,43 @@ def about():
     """about"""
     return render_template("about.html")
 
-@app.route("/contact", methods=["GET"])
+
+@app.route("/corporate/contact", methods=["GET"])
 def contact():
     return render_template("contact.html")
 
 
-# @app.route('/corporate-start', methods = ['POST', 'GET'])
-# def start_corporate():
-# 	error = ''
-# 	message = ''
-# 	global corporate_finished
-# 	if request.method == 'POST':
-# 		key = hashing(str(request.form.get('Key')))
-# 		if key == admin_key:
-# 			message = reset_corporate_votes()
-# 			corporate_finished = False
-# 		else:
-# 			error = "Incorrect admin key"
-# 	return render_template("start.html", message = message, error = error)
+@app.route("/corporate/admin/startVote", methods=["GET", "POST"])
+@is_admin
+def startVote():
+    global corporate_finished
+    corporate_finished = False
+    return redirect(url_for("voterLogIn"))
 
 
-# @app.route('/corporate-end', methods = ['POST', 'GET'])
-# def corporate_end():
-# 	error = ''
-# 	message = ''
-# 	global corporate_finished
-# 	if request.method == 'POST':
-# 		key = hashing(str(request.form.get('Key')))
-# 		if key == admin_key:
-# 			message = count_corporate_votes()
-# 			corporate_finished = True
-# 		else:
-# 			error = "Incorrect admin key"
-# 	return render_template('corporate_end.html', message = message, error = error)
+@app.route("/corporate/admin/end", methods=["GET", "POST"])
+def endVote():
+    global corporate_finished
+    corporate_finished = True
+    return redirect(url_for("results"))
 
+
+@app.route("/corporate/results", methods=["GET", "POST"])
+def results():
+    titleList = []
+    voteNoList = []
+    choiceAmtList = []
+    global corporate_finished
+    if not corporate_finished:
+        flash("Admin is yet to end vote", "danger")
+        return redirect(url_for("adminLogIn"))
+    projects = Project.query.all()
+    for project in projects:
+        titleList.append(project.title)
+        voteNoList.append(project.number_of_votes)
+        choiceAmtList.append(getChoiceWalletBalance(project.address))
+    winner = titleList[choiceAmtList.index(max(choiceAmtList))]
+    return render_template("results.html", titles=titleList, votes=voteNoList, choiceBalances=choiceAmtList, winner=winner)
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", debug=True)
